@@ -25,7 +25,6 @@
 
 #include "SLCanPico.h"
 
-
 int slcan_cmd_byte( uint8_t c )
 {
     return SLCanPico::getInstance().cmdByte( c );
@@ -44,11 +43,16 @@ bool SLCanPico::transmit(uint32_t* bits, size_t numbits)
     pwm_config c = pwm_get_default_config();
     pwm_config_set_clkdiv(&c, fsys/16000000.0F);
     pwm_init(slice, &c, true);
-    
+
     // Setup GP22 for the CAN TXD output.
     gpio_init(22);
     gpio_set_dir(22, true);
-    
+
+    // TODO: Setup GP21 for the CAN RXD input.
+
+    // Disable interrupts
+    critical_section_enter_blocking( &m_crit_sec );
+
     // Do a 500kHz square wave for now.
     uint16_t expiry( pwm_get_counter(slice) + 16 );
     for (int i=0; i<500; i++) {
@@ -59,12 +63,10 @@ bool SLCanPico::transmit(uint32_t* bits, size_t numbits)
         waitExpiry(expiry);
         expiry += 16;
     }
-    
-    
-    // Setup GP21 for the CAN RXD input.
-    // Disable all interrupts.
-    // Bit loop.
-    // Enable all interrupts.
+
+    // Enable interrupts.
+    critical_section_exit( &m_crit_sec );
+
     return false;
 }
 

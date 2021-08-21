@@ -32,6 +32,7 @@
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
 #include "hardware/pwm.h"
+#include "pico/critical_section.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,17 +59,25 @@ protected:
     virtual bool transmit(uint32_t* bits, size_t numbits);
 
 private:
-    SLCanPico() {}; // Private constructor. This is a singleton class.
+    // Private constructor. This is a singleton class.
+    SLCanPico()
+    {
+        critical_section_init( &m_crit_sec );
+    }
+
     inline void waitExpiry(uint16_t expiry)
     {
         const uint32_t slice(0);
         int16_t elapsed = pwm_get_counter(slice) - expiry;
         while( elapsed < 0) elapsed = pwm_get_counter(slice) - expiry; // Tight loop waiting for counter to reach expiry.
     }
+
     inline void txd(bool v)
     {
         gpio_put(22,v);
     }
+
+    critical_section_t m_crit_sec;
 
 };
 #endif // __cplusplus
