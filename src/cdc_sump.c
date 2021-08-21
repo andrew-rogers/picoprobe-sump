@@ -39,6 +39,7 @@
 
 #include "picoprobe_config.h"
 #include "cdc_sump.h"
+#include "SLCan.h"
 
 #if false
 #define sump_irq_debug(format,args...) picoprobe_debug(format, ## args)
@@ -899,6 +900,14 @@ sump_rx(uint8_t *buf, uint count)
     picoprobe_debug("\n");
 #endif
     while (count-- > 0) {
+        if ((sump.cmd_pos == 0) && slcan_cmd_byte(*buf))
+        {
+            // slcan accepted the byte
+            buf++;
+            continue;
+        }
+
+        // slcan did not accept the byte - assume it is for sump.
         sump.cmd[sump.cmd_pos++] = *buf++;
         if (SUMP_CMD_IS_SHORT(sump.cmd[0])) {
             sump_rx_short(sump.cmd[0]);
@@ -1160,6 +1169,15 @@ cdc_sump_task(void)
             if (tud_cdc_n_write_available(CDC_INTF) >= sizeof(buf)) {
                 uint tx_len = sump_fill_tx(buf, sizeof(buf));
                 tud_cdc_n_write(CDC_INTF, buf, tx_len);
+                tud_cdc_n_write_flush(CDC_INTF);
+            }
+        }
+        else {
+            size_t n = tud_cdc_n_write_available(CDC_INTF);
+            if (n > sizeof(buf)) n=sizeof(buf);
+            n = slcan_get_bytes(buf, n);
+            if (n > 0) {
+                tud_cdc_n_write(CDC_INTF, buf, n);
                 tud_cdc_n_write_flush(CDC_INTF);
             }
         }
