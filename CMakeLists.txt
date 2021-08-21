@@ -14,6 +14,7 @@ add_executable(picoprobe
         src/cdc_uart.c
         src/cdc_sump.c
         src/SLCan.cpp
+        src/SLCanPico.cpp
         src/get_serial.c
 )
 

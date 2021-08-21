@@ -25,20 +25,12 @@
 
 #include  "SLCan.h"
 
-int slcan_cmd_byte( uint8_t c )
-{
-    return SLCan::getInstance().cmdByte( c );
-}
-
-size_t slcan_get_bytes(uint8_t* buf, size_t n)
-{
-    return SLCan::getInstance().getBytes( buf, n );
-}
-
 int SLCan::cmdByte( char c )
 {
+    uint32_t bits[5];
     if( c=='a' ) {
         m_got = true;
+        transmit(bits,7);
         return 1;
     }
     return 0;
@@ -54,3 +46,4 @@ size_t SLCan::getBytes( uint8_t* buf, size_t n )
     }
     return 0;
 }
+

@@ -23,26 +23,48 @@
  *
  */
 
-#ifndef SLCAN_H
-#define SLCAN_H
+#include "SLCanPico.h"
 
-#include <stdint.h>
-#include <stddef.h>
 
-class SLCan
+int slcan_cmd_byte( uint8_t c )
 {
-public:
-    SLCan() : m_got(false) {}
+    return SLCanPico::getInstance().cmdByte( c );
+}
 
-    int cmdByte( char c );
-    size_t getBytes( uint8_t* buf, size_t n );
+size_t slcan_get_bytes(uint8_t* buf, size_t n)
+{
+    return SLCanPico::getInstance().getBytes( buf, n );
+}
 
-protected:
-    virtual bool transmit(uint32_t* bits, size_t numbits) = 0;
-
-private:
-    bool m_got;
-};
-
-#endif  // SLCAN_H
+bool SLCanPico::transmit(uint32_t* bits, size_t numbits)
+{
+    // Setup a PWM slice for the counter to measure time.
+    const uint32_t slice(0);
+    const uint32_t fsys(clock_get_hz(clk_sys));
+    pwm_config c = pwm_get_default_config();
+    pwm_config_set_clkdiv(&c, fsys/16000000.0F);
+    pwm_init(slice, &c, true);
+    
+    // Setup GP22 for the CAN TXD output.
+    gpio_init(22);
+    gpio_set_dir(22, true);
+    
+    // Do a 500kHz square wave for now.
+    uint16_t expiry( pwm_get_counter(slice) + 16 );
+    for (int i=0; i<500; i++) {
+        txd(0);
+        waitExpiry(expiry);
+        expiry += 16;
+        txd(1);
+        waitExpiry(expiry);
+        expiry += 16;
+    }
+    
+    
+    // Setup GP21 for the CAN RXD input.
+    // Disable all interrupts.
+    // Bit loop.
+    // Enable all interrupts.
+    return false;
+}
 

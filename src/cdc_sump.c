@@ -39,7 +39,7 @@
 
 #include "picoprobe_config.h"
 #include "cdc_sump.h"
-#include "SLCan.h"
+#include "SLCanPico.h"
 
 #if false
 #define sump_irq_debug(format,args...) picoprobe_debug(format, ## args)

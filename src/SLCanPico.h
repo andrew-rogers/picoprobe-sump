@@ -23,26 +23,55 @@
  *
  */
 
-#ifndef SLCAN_H
-#define SLCAN_H
+#ifndef SLCAN_PICO_H
+#define SLCAN_PICO_H
 
 #include <stdint.h>
 #include <stddef.h>
 
-class SLCan
+#include "hardware/clocks.h"
+#include "hardware/gpio.h"
+#include "hardware/pwm.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+int slcan_cmd_byte(uint8_t c);
+size_t slcan_get_bytes(uint8_t* buf, size_t n);
+#ifdef __cplusplus
+}
+#endif
+
+#ifdef __cplusplus
+#include "SLCan.h"
+
+class SLCanPico : public SLCan
 {
 public:
-    SLCan() : m_got(false) {}
-
-    int cmdByte( char c );
-    size_t getBytes( uint8_t* buf, size_t n );
+    static SLCanPico& getInstance()
+    {
+        static SLCanPico instance;
+        return instance;
+    }
 
 protected:
-    virtual bool transmit(uint32_t* bits, size_t numbits) = 0;
+    virtual bool transmit(uint32_t* bits, size_t numbits);
 
 private:
-    bool m_got;
-};
+    SLCanPico() {}; // Private constructor. This is a singleton class.
+    inline void waitExpiry(uint16_t expiry)
+    {
+        const uint32_t slice(0);
+        int16_t elapsed = pwm_get_counter(slice) - expiry;
+        while( elapsed < 0) elapsed = pwm_get_counter(slice) - expiry; // Tight loop waiting for counter to reach expiry.
+    }
+    inline void txd(bool v)
+    {
+        gpio_put(22,v);
+    }
 
-#endif  // SLCAN_H
+};
+#endif // __cplusplus
+
+#endif  // SLCAN_PICO_H
 
